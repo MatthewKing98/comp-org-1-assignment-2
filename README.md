@@ -16,3 +16,9 @@ Thoughts:
 ---------
 Will utilize the convert-to-decimal string for each substring.
 Performs convert-to-decimal on a each set of numbers until the string as a whole is done
+
+SUB1: Converts HEX character to its DEC value (eg. B -> 11). Takes/returns values with registers
+
+SUB2: Converts HEX String into DEC integer. Takes values via register, returns values via stack. Calls SUB1
+
+SUB3: Outputs integers as unsigned. Takes values via stack. Similar to prev. output but must take from stack until end-value is reached
