@@ -4,14 +4,26 @@ CONTENT: MIPS Programming Assignment 2
 Assignment 2 Algorithm
 ----------------------
 START
-Read userString
-Start substring at first non-space character
-Mark the end of the substring at the end of the number (signified by a comma, \n, or NULL)
-Trim possible spaces on RHS of substring
-Test string for validity
-	IF valid run convert-to-decimal with the passed start and end addresses
-	ELSE print NAN instead
+Read userString +2 more than they're allowed to enter
+Start at first character
+WHILE (curChar != (NULL || NEWLINE)) while not at the end of the string
+	Call TrimString
+	Mark the end of the substring at the end of the number (signified by a comma, \n, or NULL)
+	Trim possible spaces on RHS of substring
+	Test string for validity
+
+		IF valid run convert-to-decimal with the passed start and end addresses
+		ELSE print NAN instead
 END
+
+TrimString: Passed start of string
+	Mark first NON-SPACE character as the start of the string
+	Mark first comma/newline/null character as the end of the string
+	From the comma/newline/null marker WHILE character-before-marker is a space:
+		shift marker back one position
+		(Must ensure that the start of string isn't passed)
+	Return start and end of string
+	
 Thoughts:
 ---------
 Will utilize the convert-to-decimal string for each substring.
