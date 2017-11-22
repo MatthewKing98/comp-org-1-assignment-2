@@ -8,9 +8,7 @@ Read userString +2 more than they're allowed to enter
 Start at first character
 WHILE (curChar != (NULL || NEWLINE)) while not at the end of the string
 	Call TrimString
-	Mark the end of the substring at the end of the number (signified by a comma, \n, or NULL)
-	Trim possible spaces on RHS of substring
-	Test string for validity
+	Call ValidityCheck
 
 		IF valid run convert-to-decimal with the passed start and end addresses
 		ELSE print NAN instead
@@ -23,7 +21,21 @@ TrimString: Passed start of string
 		shift marker back one position
 		(Must ensure that the start of string isn't passed)
 	Return start and end of string
-	
+
+ValidityCheck: Passed start and end of string
+	currentChar = start
+	counter = 0
+	<Check to ensure there are no spaces inside the string>
+	<Set the start and end markers to the first and last characters>
+	<Count the distance between start and end>
+	IF there are spaces in between return that string is invalid
+	currentChar = start
+	digitTracker = 0
+	WHILE digitTracker != 0
+		IF currentChar is not(0-9,A-F,a-f) THEN
+			RETURN that string is invalid
+	return that string is valid, and the number of digits
+
 Thoughts:
 ---------
 Will utilize the convert-to-decimal string for each substring.
