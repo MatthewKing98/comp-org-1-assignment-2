@@ -9,9 +9,10 @@ Start at first character
 WHILE (curChar != (NULL || NEWLINE)) while not at the end of the string
 	Call TrimString
 	Call ValidityCheck
-
-		IF valid run convert-to-decimal with the passed start and end addresses
-		ELSE print NAN instead
+	IF Valid
+		Call Convert Convert-To-Decimal with the passed start and end addresses
+	ELSE 
+		print NAN instead
 END
 
 TrimString: Passed start of string
@@ -35,6 +36,14 @@ ValidityCheck: Passed start and end of string
 		IF currentChar is not(0-9,A-F,a-f) THEN
 			RETURN that string is invalid
 	return that string is valid, and the number of digits
+	
+Convert-To-Decimal: Passed start of string and number of elements
+	FOR each character Call Convert-Character
+	Multiply Convert-Character by exponent //exponent found with method similar to assignment 1
+	Add to Cumulative sum
+	return cumulative sum
+
+Convert-Character: Pass character is converted to relevant integer
 
 Thoughts:
 ---------
