@@ -65,6 +65,16 @@ stringConversion:
 	jal ConvertDecimalToString #stringify and output the cumulative sum
 	
 exit:
+	la $a0, outputStatement #Set output source to invalid hex message
+	li $v0, 4 #Output String code loaded
+	syscall	#Output invalid hex message
+
+
+	lb $a0, 0($v1)
+	li $v0, 1
+	syscall
+
+
 	li $v0, 10 #Exit code loaded
 	syscall	#Exit program
 	
@@ -90,7 +100,7 @@ inputError:
 # $t7 Holds address of first digit - numStart       #
 # $t8 Represents the string's pattern - strCode     #
 # $v0 $t4, Invalid flag/starting number - returnVar1#
-# $v1 	 			#
+# $v1 starting number of next sub-string			#
 #                                                   #
 # NOTES:                                            #
 # Code used to classify string is as follows:       #
@@ -162,6 +172,7 @@ CheckData:
 			j findSpaces #repeats filtering process for next character
 	findSpacesEnd:
 	sb $s0, 0($t0) #mark the end of valid code with the end-of-string value
+	addi $v1, $t0, 1 #records starting address of next substring
 	add $t0, $t7, $zero #shift attention back to the first number value in the string
 	checkDataLoop:
 		lb $t1, 0($t0) #loads new digit 
