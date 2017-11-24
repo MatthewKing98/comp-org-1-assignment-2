@@ -65,16 +65,6 @@ stringConversion:
 	jal ConvertDecimalToString #stringify and output the cumulative sum
 	
 exit:
-	la $a0, outputStatement #Set output source to invalid hex message
-	li $v0, 4 #Output String code loaded
-	syscall	#Output invalid hex message
-
-
-	lb $a0, 0($v1)
-	li $v0, 1
-	syscall
-
-
 	li $v0, 10 #Exit code loaded
 	syscall	#Exit program
 	
@@ -100,7 +90,7 @@ inputError:
 # $t7 Holds address of first digit - numStart       #
 # $t8 Represents the string's pattern - strCode     #
 # $v0 $t4, Invalid flag/starting number - returnVar1#
-# $v1 starting number of next sub-string			#
+# $v1 starting address of next sub-string			#
 #                                                   #
 # NOTES:                                            #
 # Code used to classify string is as follows:       #
@@ -232,13 +222,14 @@ CheckData:
 # $t6 Digit decimal value - digiVal                 #
 # $t7 Cumulative sum - cumulativeSum                #
 # $t8 Temp const holder - tempConstHolder           #
+# $s6 temp return holder
 # $v0 $t7, cumulative sum - returnVar1              #
 #####################################################
 
 CalcuateDecimal:
+
 	add $t0, $a0, $zero #sets digit address to leftmost slot
 	li $t2, 0 #initializes digit counter to zero
-	
 	totalDigitsLoop:
 		lb $t1, 0($t0) #loads new digit 
 		beq $t1, $s0, totalDigitsLoopEnd #If the value is END
@@ -258,27 +249,28 @@ CalcuateDecimal:
 			li $t3, 0 #expCounter = 0
 			li $t4, 1 #multiplier = 1
 			multiplierLoop: #calculates what power of 16 the digit is to be multiplied by
-				beq $t3, $t5, translateCharToInt #execute until the multiplier is multiplied by 16^expMax
+				bne $t3, $t5, prepareMultiplier #execute until the multiplier is multiplied by 16^expMax
+
+				charToIntFunction: #identifies what the decimal value is of the given character
+				
+				add $s6, $ra, $zero #hold the current function's return address
+				addi $sp, $sp, -4
+				sw $ra, 0($sp)
+				add $a0, $t1, $zero
+				jal TranslateCharToInt
+				lw $ra, 0($sp) #return function return address to original
+				addi $sp, $sp, -4
+				add $t1, $v0, $zero
+				j applyMultiplier
+				
+			prepareMultiplier:
 				mult $t4, $s2 #multiply by 16 (effectively raise by a power)
 				mflo $t4 #load result of multiplier * 16
 				addi $t3, $t3, 1 #increment exponent counter
 				j multiplierLoop
-			translateCharToInt: #identifies what the decimal value is of the given character
-				li $t8, 58 #set curLim to "9" + 1
-				slt $t8, $t8, $t1  #return 1 if "9" is less than digit
-				bne $t8, $zero, notDigit #character is a letter in "A-F"/"a-f"
-				addi $t1, $t1, -48 #lower value so that "0" = 0
-				j applyMultiplier 
-				notDigit:
-					li $t8, 71 #set curLim to "F" + 1
-					slt $t8, $t8, $t1 #return 1 if "9" is less than digit
-					bne $t8, $zero, notUpper #character is a letter in "a-f"
-					addi $t1, $t1, -55 #lower value so that "A" = 10
-				j applyMultiplier
-				notUpper:
-					li $t8, 103 #set curLim to "f" + 1
-					slt $t8, $t8, $t1 #return 1 if "9" is less than digit
-					addi $t1, $t1, -87 #lower value so that "a" = 10
+
+
+				
 			applyMultiplier: #multiplier actual decimal value by multiplier
 				mult $t4, $t1 #multiplier * digit value
 				mflo $t6 #loads result of multiplier * digit value
@@ -288,10 +280,39 @@ CalcuateDecimal:
 				beq $t8, $t5, addDecimalDigitsLoopEnd #exits if expMax drops below 0
 				addi $t0, $t0, 1 #shifts attention to next digit
 				lb $t1, 0($t0) #loads next digit
+				
 				j addDecimalDigitsLoop
 		addDecimalDigitsLoopEnd:
 			add $v0, $t7, $zero #load cumulative sum into return register, $v0
 			jr $ra #end of function
+		
+###########################################################
+# MODULE: TranslateCharToInt                              #
+# PURPOSE: Converts individual character to decimal value #
+# $a0 character to convert - curChar                      #
+# $t1 $a0 character to convert - curChar                  #
+# $t8 Current character limit - curLim                    #
+###########################################################			
+TranslateCharToInt:
+	add $t1, $a0, $zero
+	li $t8, 58 #set curLim to "9" + 1
+	slt $t8, $t8, $t1  #return 1 if "9" is less than digit
+	bne $t8, $zero, notDigit #character is a letter in "A-F"/"a-f"
+	addi $t1, $t1, -48 #lower value so that "0" = 0
+	j TranslateCharToIntEnd 
+	notDigit:
+		li $t8, 71 #set curLim to "F" + 1
+		slt $t8, $t8, $t1 #return 1 if "9" is less than digit
+		bne $t8, $zero, notUpper #character is a letter in "a-f"
+		addi $t1, $t1, -55 #lower value so that "A" = 10
+	j TranslateCharToIntEnd
+	notUpper:
+		li $t8, 103 #set curLim to "f" + 1
+		slt $t8, $t8, $t1 #return 1 if "9" is less than digit
+		addi $t1, $t1, -87 #lower value so that "a" = 10	
+	TranslateCharToIntEnd:
+		add $v0, $t1, $zero
+		jr $ra #end of function
 		
 ###########################################################
 # MODULE: ConvertDecimalToString                          #
