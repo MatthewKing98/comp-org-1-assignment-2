@@ -7,46 +7,30 @@ START
 Read userString +2 more than they're allowed to enter
 Start at first character
 WHILE (curChar != (NULL || NEWLINE)) while not at the end of the string
-	Call ValidityCheck
-	IF Valid
-		Call Convert Convert-To-Decimal with the passed start and end addresses
-	ELSE 
-		print NAN instead
+	print CalculateValue //sub 3
 END
 
-CheckSpaces: Passed start of string
-	Mark first NON-SPACE character as the start of the string
-	Mark first comma/newline/null character as the end of the string
-	From the comma/newline/null marker WHILE character-before-marker is a space:
-		shift marker back one position
-		(Must ensure that the start of string isn't passed)
-	Return start and end of string
 
-ValidityCheck: Passed start and end of string
-	currentChar = start
-	counter = 0
-	Call CheckSpaces
-	<Count the distance between start and end>
-	IF there are spaces in between return that string is invalid
-	currentChar = start
-	digitTracker = 0
-	WHILE digitTracker != 0
-		IF currentChar is not(0-9,A-F,a-f) THEN
-			RETURN that string is invalid
-	return that string is valid, and the number of digits
-	
-Convert-To-Decimal: Passed start of string and number of elements
-	FOR each character Call Convert-Character
-	Multiply Convert-Character by exponent //exponent found with method similar to assignment 1
-	Add to Cumulative sum
-	return cumulative sum
-
-Convert-Character: Pass character is converted to relevant integer
+CalculateValue: //sub 2
+1. CumulativeSum = 0
+2. Exponent = 0
+3. Accept input up to comma/newline/null
+4. Check if data is valid
+	4.1 Contains numbers and/or letters going from 0-9 AND (a-f)/(A-F)
+5. If data is valid THEN
+	5.1 While there is content (while STRING != 000....000)
+		5.1.1 Take the rightmost character from the string
+		5.1.2 Translate it to decimal //sub 1
+		5.1.3 Multiply it by 16^Exponent
+		5.1.4 Add it to CumulativeSum
+		5.1.5 Add 1 to Exponent
+	5.2 Return CumulativeSum, and currChar
+ELSE
+	Return NaN, and currChar
 
 Thoughts:
 ---------
-Will utilize the convert-to-decimal string for each substring.
-Performs convert-to-decimal on a each set of numbers until the string as a whole is done
+There's no need to retype large amounts of the function. I just need to put what I already have in a loop
 
 SUB1: Converts HEX character to its DEC value (eg. B -> 11). Takes/returns values with registers
 
