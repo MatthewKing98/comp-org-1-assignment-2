@@ -9,10 +9,10 @@
 
 	.data #Data declaration component
 	userInput: #location were valid entry is stored
-		.space 9 #9 bytes, 1 byte per possible character, and an end-of-string marker; Space is maximum size
+		.space 1001 #1001 bytes, 1 byte per possible character, and an end-of-string marker; Space is maximum size
 	
 	inputErrorText: #error message for invalid user input
-		.asciiz "Invalid hexadecimal number."
+		.asciiz "NaN"
 		
 	outputStatement: #statement preceeding the program output
 		.asciiz "\n"
@@ -42,14 +42,17 @@ main: #Start of code
 	li $s4, 32 #CONST SPACE = 32
 	li $s5, 44 #CONST COMMA = 44
 input:
-	li $a1, 9 #Specify max size for read string read characters = ($a1 - 1) = 8 max
+	li $a1, 1000 #Specify max size for read string read characters = ($a1 - 1) = 1000 max
 	la $a0, userInput #Set destination for read string
 	li $v0, 8 #Read String code loaded
 	syscall #Read string from user
 	
 validityCheck:
 	jal CheckData #Verifies if userInput is a valid HEX value
-	bne $v0, $zero, inputError #if input is invalid, go to inputError
+	beq $v0, $zero, decimalConversion #if convert to decimal if input is valid
+	add $a1, $v0, $zero #load invalid-number-code into argument1
+	jal ConvertDecimalToString #output NaN
+	j exit
 
 decimalConversion:
 	add $a0, $v1, $zero #pass the string's starting position as an argument
@@ -58,13 +61,8 @@ decimalConversion:
 	
 stringConversion:
 	add $a0, $t0, $zero #load the cumulative sum as an argument
-	jal ConvertDecimalToString #stringify the cumulative sum
-	add $t1, $v0, $zero #load the returned cumulative sum address into $t1
-	
-output:
-	add $a0, $t1, $zero #Set output source to cumulativeSum
-	li $v0, 4 #Output String code loaded
-	syscall	#Output unsigned cumulative sum as a string
+	li $a1, 0 #load valid-number-code into argument1
+	jal ConvertDecimalToString #stringify and output the cumulative sum
 	
 exit:
 	li $v0, 10 #Exit code loaded
@@ -91,7 +89,7 @@ inputError:
 # $t6 Value to compare char against - strCode       #
 # $t7 Holds address of first digit - numStart       #
 # $t8 Represents the string's pattern - strCode     #
-# $v0 $t3, Invalid number flag - returnVar1         #
+# $v0 $t4, Invalid number flag - returnVar1         #
 # $v1 $t7, Starting number - returnVar2	 			#
 #                                                   #
 # NOTES:                                            #
@@ -284,25 +282,34 @@ CalcuateDecimal:
 # MODULE: ConvertDecimalToString                          #
 # PURPOSE: Stringifies decimal so it is read as unsigned  #
 # $a0 Decimal to convert                                  #
-# $a1 Size of decimal                                     #
+# $a1 validity of decimal                                 #
 # $t0 $a0, Decimal to convert - deciVal                   #
 # $t1 Destination string of converted decimal - deciString#
 # $t2 deciVal mod 10 - modResult                          #
-# $v0 $t1, deciString - returnVar1                        #
 ###########################################################	
 		
 ConvertDecimalToString:
-	add $t0, $a0, $zero #loads content of decimal to convert
-	la $t1, outputDecimal #sets destnation string of decimal conversion
-	addi $t1, $t1, 9 #shift attention to the end of the string
-	addToString:
-		divu $t0, $s3 #obtain the rightmost decimal digit of the decimal
-		mfhi $t2 #load rightmost digit
-		mflo $t0 #load decimal without the rightmost digit
-		addi $t2, $t2, 48 #raise value so that 0 = "0", 1 = "1", etc.
-		sb $t2, 0($t1) #save character-digit in the string
-		addi $t1, $t1, -1 #shift attention to the space left of previous
-		bne $t0, $zero, addToString #repeat until there are no digits remaining
-	addi $t1, $t1, 1 #readjust pointer to start of the string
-	add $v0, $t1, $zero #load string pointer into return register, $v0
-	jr $ra #end of function
+	bne $a1, $zero, invalidDecimal #simply output nan if decimal was invalid
+	validDecimal:
+		add $t0, $a0, $zero #loads content of decimal to convert
+		la $t1, outputDecimal #sets destnation string of decimal conversion
+		addi $t1, $t1, 9 #shift attention to the end of the string
+		addToString:
+			divu $t0, $s3 #obtain the rightmost decimal digit of the decimal
+			mfhi $t2 #load rightmost digit
+			mflo $t0 #load decimal without the rightmost digit
+			addi $t2, $t2, 48 #raise value so that 0 = "0", 1 = "1", etc.
+			sb $t2, 0($t1) #save character-digit in the string
+			addi $t1, $t1, -1 #shift attention to the space left of previous
+			bne $t0, $zero, addToString #repeat until there are no digits remaining
+		addi $t1, $t1, 1 #readjust pointer to start of the string
+		add $a0, $t1, $zero #Set output source to cumulativeSum
+		li $v0, 4 #Output String code loaded
+		syscall	#Output unsigned cumulative sum as a string
+		j ConvertDecimalToStringEnd
+	invalidDecimal:
+		la $a0, inputErrorText #Set output source to invalid hex message
+		li $v0, 4 #Output String code loaded
+		syscall	#Output invalid hex message
+	ConvertDecimalToStringEnd:
+		jr $ra #end of function
