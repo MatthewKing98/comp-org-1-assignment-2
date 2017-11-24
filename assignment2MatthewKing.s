@@ -49,19 +49,19 @@ input:
 	
 validityCheck:
 	jal CheckData #Verifies if userInput is a valid HEX value
-	beq $v0, $zero, decimalConversion #if convert to decimal if input is valid
+	bne $v0, $zero, decimalConversion #convert to decimal if input is valid
 	add $a1, $v0, $zero #load invalid-number-code into argument1
 	jal ConvertDecimalToString #output NaN
 	j exit
 
 decimalConversion:
-	add $a0, $v1, $zero #pass the string's starting position as an argument
+	add $a0, $v0, $zero #pass the string's starting position as an argument
 	jal CalcuateDecimal #convert the code to a decimal value
 	add $t0, $v0, $zero #load the returned cumulative sum into $t0
 	
 stringConversion:
 	add $a0, $t0, $zero #load the cumulative sum as an argument
-	li $a1, 0 #load valid-number-code into argument1
+	add $a1, $v0, $zero #load valid-number-code into argument1
 	jal ConvertDecimalToString #stringify and output the cumulative sum
 	
 exit:
@@ -89,8 +89,8 @@ inputError:
 # $t6 Value to compare char against - strCode       #
 # $t7 Holds address of first digit - numStart       #
 # $t8 Represents the string's pattern - strCode     #
-# $v0 $t4, Invalid number flag - returnVar1         #
-# $v1 $t7, Starting number - returnVar2	 			#
+# $v0 $t4, Invalid flag/starting number - returnVar1#
+# $v1 	 			#
 #                                                   #
 # NOTES:                                            #
 # Code used to classify string is as follows:       #
@@ -199,10 +199,14 @@ CheckData:
 	IsEmpty:
 		bne $t2, $zero, CheckDataEnd #do not mark the flag if the string has at least 1 member
 		li $t4, 1 #mark as invalid if empty
-	CheckDataEnd:	
-		add $v0, $t4, $zero #load status into return register, $v0
-		add $v1, $t7, $zero #load starting postion into return register, $v1
-		jr $ra #end of function
+	CheckDataEnd:
+		beq $t4, $zero, returnValid
+		li $v0, 0 #set "start" to null if invalid
+		j exitCheckData
+		returnValid:
+			add $v0, $t7, $zero #load starting postion into return register, $v0
+		exitCheckData:
+			jr $ra #end of function
 	
 #####################################################
 # MODULE: CalcuateDecimal                           #
@@ -282,14 +286,14 @@ CalcuateDecimal:
 # MODULE: ConvertDecimalToString                          #
 # PURPOSE: Stringifies decimal so it is read as unsigned  #
 # $a0 Decimal to convert                                  #
-# $a1 validity of decimal                                 #
+# $a1 validity of decimal (NULL = INVALID)                #
 # $t0 $a0, Decimal to convert - deciVal                   #
 # $t1 Destination string of converted decimal - deciString#
 # $t2 deciVal mod 10 - modResult                          #
 ###########################################################	
 		
 ConvertDecimalToString:
-	bne $a1, $zero, invalidDecimal #simply output nan if decimal was invalid
+	beq $a1, $zero, invalidDecimal #output nan if starting position is NULL
 	validDecimal:
 		add $t0, $a0, $zero #loads content of decimal to convert
 		la $t1, outputDecimal #sets destnation string of decimal conversion
