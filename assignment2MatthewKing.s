@@ -29,8 +29,10 @@
 # $s3 CONST Output Base - OUTBASE                   #
 # $s4 CONST Space - SPACE                           #
 # $s5 CONST Comma - COMMA                           #
+# $s8 Keeps t1 away from function editing. neaten later
 # $t0 Cumulative sum - cumulativeSum                #
 # $t1 Address of decimal in string form - deciString#
+# $t2 Value at $t1
 #####################################################
 	.text #Assembly instructions component
 main: #Start of code
@@ -46,13 +48,20 @@ input:
 	la $a0, userInput #Set destination for read string
 	li $v0, 8 #Read String code loaded
 	syscall #Read string from user
+	la $s8, userInput
 	
 validityCheck:
+	lb $t2, 0($s8)
+	beq $t2, $zero, exit
+	beq $t2, $s0, exit
+
+	add $a0, $s8, $zero
 	jal CheckData #Verifies if userInput is a valid HEX value
+	add $s8, $v1, $zero #T1 DOES NOT STAY THE SAME KING
 	bne $v0, $zero, decimalConversion #convert to decimal if input is valid
 	add $a1, $v0, $zero #load invalid-number-code into argument1
 	jal ConvertDecimalToString #output NaN
-	j exit
+	j validityCheck
 
 decimalConversion:
 	add $a0, $v0, $zero #pass the string's starting position as an argument
@@ -63,6 +72,7 @@ stringConversion:
 	add $a0, $t0, $zero #load the cumulative sum as an argument
 	add $a1, $v0, $zero #load valid-number-code into argument1
 	jal ConvertDecimalToString #stringify and output the cumulative sum
+	j validityCheck
 	
 exit:
 	li $v0, 10 #Exit code loaded
@@ -102,8 +112,20 @@ inputError:
 	
 CheckData:
 	add $t7, $a0, $zero #default first-digit-position to start of string
+	
+	la $a0, outputStatement
+	li $v0, 4
+	syscall
+	lb $a0, 0($t7)
+	li $v0, 1
+	syscall
+	la $a0, outputStatement
+	li $v0, 4
+	syscall
+	
 	add $t0, $t7, $zero #points intially to start of string
 	li $t8, 0 #starts number status as blank
+	li $t4, 0 #innocent until proven guilty
 	findSpaces:
 		lb $t1, 0($t0) #loads new digit
 		
@@ -146,6 +168,7 @@ CheckData:
 		#string also contains a number
 		wasBlankAddNum:
 			li $t8, 1 #blank -> num
+			add $t7, $t0, $zero #record starting address of actual
 			j nextNo
 		wasNumAddNum:
 			j nextNo
@@ -163,6 +186,17 @@ CheckData:
 	findSpacesEnd:
 	sb $s0, 0($t0) #mark the end of valid code with the end-of-string value
 	addi $v1, $t0, 1 #records starting address of next substring
+	
+	la $a0, outputStatement
+	li $v0, 4
+	syscall
+	lb $a0, 0($v1)
+	li $v0, 1
+	syscall
+	la $a0, outputStatement
+	li $v0, 4
+	syscall
+	
 	add $t0, $t7, $zero #shift attention back to the first number value in the string
 	checkDataLoop:
 		lb $t1, 0($t0) #loads new digit 
@@ -201,6 +235,18 @@ CheckData:
 		bne $t2, $zero, CheckDataEnd #do not mark the flag if the string has at least 1 member
 		li $t4, 1 #mark as invalid if empty
 	CheckDataEnd:
+	
+		la $a0, outputStatement
+		li $v0, 4
+		syscall
+		lb $a0, 0($t0)
+		li $v0, 1
+		syscall
+		la $a0, outputStatement
+		li $v0, 4
+		syscall
+	
+	
 		beq $t4, $zero, returnValid
 		li $v0, 0 #set "start" to null if invalid
 		j exitCheckData
