@@ -178,7 +178,7 @@ CheckData:
 			j nextNo
 		wasNumAndSpaceAddNum:
 			li $t4, 1 #invalid; a space cannot exist between two numbers
-			j CheckDataEnd #no need to check any further once proven invalid
+			#j CheckDataEnd #no need to check any further once proven invalid
 		
 		nextNo:
 			addi $t0, $t0, 1 #shift attention to next character
