@@ -51,13 +51,14 @@ input:
 	la $s8, userInput
 	
 validityCheck:
-	lb $t2, 0($s8)
-	beq $t2, $zero, exit
-	beq $t2, $s0, exit
+	lb $t1, 0($s8)
+	beq $t1, $zero, exit
+	#beq $t1, $s0, exit
 
 	add $a0, $s8, $zero
 	jal CheckData #Verifies if userInput is a valid HEX value
 	add $s8, $v1, $zero #T1 DOES NOT STAY THE SAME KING
+	
 	bne $v0, $zero, decimalConversion #convert to decimal if input is valid
 	add $a1, $v0, $zero #load invalid-number-code into argument1
 	jal ConvertDecimalToString #output NaN
@@ -230,7 +231,7 @@ CheckData:
 	IsTooLarge:
 		slt $t3, $s1, $t2 #return 1 if max size is less than digit count
 		beq $t3, $zero, CheckDataEnd #do not mark the flag if string is at most 8 members long
-		li $t4, 1 #mark as invalid if too large
+		li $t4, 2 #mark as invalid if too large
 	CheckDataEnd:
 		beq $t4, $zero, returnValid
 		li $v0, 0 #set "start" to null if invalid
