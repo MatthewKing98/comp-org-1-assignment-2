@@ -29,7 +29,7 @@
 # $s3 CONST Output Base - OUTBASE                   #
 # $s4 CONST Space - SPACE                           #
 # $s5 CONST Comma - COMMA                           #
-# $s8 Keeps t1 away from function editing. neaten later
+# $s8 Starting point of current substring
 # $t0 Cumulative sum - cumulativeSum                #
 # $t1 Address of decimal in string form - deciString#
 # $t2 Value at $t1
@@ -187,17 +187,8 @@ CheckData:
 	sb $s0, 0($t0) #mark the end of valid code with the end-of-string value
 	addi $v1, $t0, 1 #records starting address of next substring
 	
-	la $a0, outputStatement
-	li $v0, 4
-	syscall
-	lb $a0, 0($v1)
-	li $v0, 1
-	syscall
-	la $a0, outputStatement
-	li $v0, 4
-	syscall
-	
 	add $t0, $t7, $zero #shift attention back to the first number value in the string
+	li $t2, 0
 	checkDataLoop:
 		lb $t1, 0($t0) #loads new digit 
 		beq $t1, $s0, IsEmpty #If the value is End-of-String, check to see if the string is empty
@@ -230,23 +221,17 @@ CheckData:
 		bne $t4, $zero, CheckDataEnd #ends loop early if invalid number is found
 		addi $t0, $t0, 1 #shifts attention to next digit
 		addi $t2, $t2, 1 #increment digit counter
-		bne $s1, $t2, checkDataLoop #while digitCount != STRSIZE
+		j checkDataLoop
+		#bne $s1, $t2, checkDataLoop #while digitCount != STRSIZE
 	IsEmpty:
-		bne $t2, $zero, CheckDataEnd #do not mark the flag if the string has at least 1 member
+		bne $t2, $zero, IsTooLarge #do not mark the flag if the string has at least 1 member
 		li $t4, 1 #mark as invalid if empty
+		j CheckDataEnd
+	IsTooLarge:
+		slt $t3, $s1, $t2 #return 1 if max size is less than digit count
+		beq $t3, $zero, CheckDataEnd #do not mark the flag if string is at most 8 members long
+		li $t4, 1 #mark as invalid if too large
 	CheckDataEnd:
-	
-		la $a0, outputStatement
-		li $v0, 4
-		syscall
-		lb $a0, 0($t0)
-		li $v0, 1
-		syscall
-		la $a0, outputStatement
-		li $v0, 4
-		syscall
-	
-	
 		beq $t4, $zero, returnValid
 		li $v0, 0 #set "start" to null if invalid
 		j exitCheckData
