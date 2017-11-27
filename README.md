@@ -48,6 +48,21 @@ STACK LOGIC:
 stack will need to be reversed before data is accessed
 
 STACK BEFORE:
+1|num
+ |valid-code 
+-
+2|num 
+ |valid-code
+-
+3|num
+ |valid-code
+-
+4|num
+ |valid-code
+-
+numberCount
+
+STACK AFTER:
 4|num
  |valid-code 
 -
@@ -62,18 +77,16 @@ STACK BEFORE:
 -
 numberCount
 
-STACK AFTER:
-STACK BEFORE:
-1|num
- |valid-code 
--
-2|num 
- |valid-code
--
-3|num
- |valid-code
--
-4|num
- |valid-code
--
-numberCount
+
+C Code
+------
+FlipStack()
+{
+	stackSize = stack.size
+	for (int counter = 1; counter  < stackSize/2; counter ++
+	{
+		temp = stack[counter]
+		stack[counter] = stack[stackSize - counter]
+		stack[stackSize - counter] = temp
+	}
+}
