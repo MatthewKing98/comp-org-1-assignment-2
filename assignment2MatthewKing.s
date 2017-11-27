@@ -43,6 +43,9 @@ main: #Start of code
 	li $s3, 10 #CONST OUTBASE = 10
 	li $s4, 32 #CONST SPACE = 32
 	li $s5, 44 #CONST COMMA = 44
+	addi $sp, $sp, -4
+	sw $zero, 0($sp) #start of stating that there are zero substring detected
+	
 input:
 	li $a1, 1000 #Specify max size for read string read characters = ($a1 - 1) = 1000 max
 	la $a0, userInput #Set destination for read string
@@ -291,7 +294,7 @@ CalcuateDecimal:
 				add $a0, $t1, $zero
 				jal TranslateCharToInt
 				lw $ra, 0($sp) #return function return address to original
-				addi $sp, $sp, -4
+				addi $sp, $sp, 4
 				add $t1, $v0, $zero
 				j applyMultiplier
 				
