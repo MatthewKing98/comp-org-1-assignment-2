@@ -11,9 +11,18 @@
 	userInput: #location were valid entry is stored
 		.space 1001 #1001 bytes, 1 byte per possible character, and an end-of-string marker; Space is maximum size
 	
-	inputErrorText: #error message for invalid user input
+	notANumberMessage: #error message for invalid user input
 		.asciiz "NaN"
+	
+	tooLargeMessage: #error message for invalid user input
+		.asciiz "too large"
 		
+	inputErrorText: #error message for invalid user input
+		.asciiz "FILLER"
+		
+	formattingComma: #statement preceeding the program output
+		.asciiz ","
+	
 	outputStatement: #statement preceeding the program output
 		.asciiz "\n"
 	
@@ -55,7 +64,7 @@ input:
 	
 validityCheck:
 	lb $t1, 0($s8)
-	beq $t1, $zero, exit
+	beq $t1, $zero, stringConversion
 	#beq $t1, $s0, exit
 
 	add $a0, $s8, $zero
@@ -64,7 +73,6 @@ validityCheck:
 	
 	bne $v0, $zero, decimalConversion #convert to decimal if input is valid
 	add $a1, $v0, $zero #load invalid-number-code into argument1
-	jal ConvertDecimalToString #output NaN
 	j validityCheck
 
 decimalConversion:
@@ -72,11 +80,20 @@ decimalConversion:
 	jal CalcuateDecimal #convert the code to a decimal value
 	add $t0, $v0, $zero #load the returned cumulative sum into $t0
 	
-stringConversion:
 	add $a0, $t0, $zero #load the cumulative sum as an argument
 	add $a1, $v0, $zero #load valid-number-code into argument1
-	jal ConvertDecimalToString #stringify and output the cumulative sum
 	j validityCheck
+	
+stringConversion:
+	
+	lw $t1, 0($sp) 
+	addi $sp, $sp, 4
+	beq $t1, $zero, exit
+	addi $sp, $sp, -4
+	sw $t1, 0($sp)
+	jal ConvertDecimalStackToString
+	j stringConversion
+
 	
 exit:
 	li $v0, 10 #Exit code loaded
@@ -116,16 +133,6 @@ inputError:
 	
 CheckData:
 	add $t7, $a0, $zero #default first-digit-position to start of string
-	
-	la $a0, outputStatement
-	li $v0, 4
-	syscall
-	lb $a0, 0($t7)
-	li $v0, 1
-	syscall
-	la $a0, outputStatement
-	li $v0, 4
-	syscall
 	
 	add $t0, $t7, $zero #points intially to start of string
 	li $t8, 0 #starts number status as blank
@@ -387,37 +394,58 @@ TranslateCharToInt:
 		jr $ra #end of function
 		
 ###########################################################
-# MODULE: ConvertDecimalToString                          #
+# MODULE: ConvertDecimalStackToString                     #
 # PURPOSE: Stringifies decimal so it is read as unsigned  #
-# $a0 Decimal to convert                                  #
-# $a1 validity of decimal (NULL = INVALID)                #
-# $t0 $a0, Decimal to convert - deciVal                   #
-# $t1 Destination string of converted decimal - deciString#
-# $t2 deciVal mod 10 - modResult                          #
-###########################################################	
-		
-ConvertDecimalToString:
-	beq $a1, $zero, invalidDecimal #output nan if starting position is NULL
+# $t0 number of substrings left                           #
+# $t1 Status of decimal - deciStat                        #
+# $t2 Decimal to convert - deciVal                        #
+# $t3 Destination string of converted decimal - deciString#
+# $t4 deciVal mod 10 - modResult                          #
+# $t5 teporary comparison holder						  #
+###########################################################
+
+ConvertDecimalStackToString:
+	lw $t0, 0($sp) #read number of substrings
+	addi $sp, $sp, 4
+	lw $t1, 0($sp) #read status of substring from stack
+	addi $sp, $sp, 4
+	lw $t2, 0($sp) #read number from stack
+	addi $sp, $sp, 4
+	
+	bne $t1, $zero, invalidDecimal #output is code dependent if decimal is not valid
 	validDecimal:
-		add $t0, $a0, $zero #loads content of decimal to convert
-		la $t1, outputDecimal #sets destnation string of decimal conversion
-		addi $t1, $t1, 9 #shift attention to the end of the string
+		la $t3, outputDecimal #sets destnation string of decimal conversion
+		addi $t3, $t3, 9 #shift attention to the end of the string
 		addToString:
-			divu $t0, $s3 #obtain the rightmost decimal digit of the decimal
-			mfhi $t2 #load rightmost digit
-			mflo $t0 #load decimal without the rightmost digit
-			addi $t2, $t2, 48 #raise value so that 0 = "0", 1 = "1", etc.
-			sb $t2, 0($t1) #save character-digit in the string
-			addi $t1, $t1, -1 #shift attention to the space left of previous
-			bne $t0, $zero, addToString #repeat until there are no digits remaining
-		addi $t1, $t1, 1 #readjust pointer to start of the string
-		add $a0, $t1, $zero #Set output source to cumulativeSum
-		li $v0, 4 #Output String code loaded
-		syscall	#Output unsigned cumulative sum as a string
-		j ConvertDecimalToStringEnd
+			divu $t2, $s3 #obtain the rightmost decimal digit of the decimal
+			mfhi $t4 #load rightmost digit
+			mflo $t2 #load decimal without the rightmost digit
+			addi $t4, $t4, 48 #raise value so that 0 = "0", 1 = "1", etc.
+			sb $t4, 0($t3) #save character-digit in the string
+			addi $t3, $t3, -1 #shift attention to the space left of previous
+			bne $t2, $zero, addToString #repeat until there are no digits remaining
+		addi $t3, $t3, 1 #readjust pointer to start of the string
+		add $a0, $t3, $zero #Set output source to cumulativeSum
+		j PrintNumber
 	invalidDecimal:
-		la $a0, inputErrorText #Set output source to invalid hex message
+		li $t5, 1
+		bne $t5, $t1, isTooLarge
+		isNaN:
+			la $a0, notANumberMessage #Set output source to NaN message
+			j PrintNumber
+		isTooLarge:
+			la $a0, tooLargeMessage #Set output source to "too large" message
+			j PrintNumber
+	PrintNumber:
+		addi $t0, $t0, -1
+		addi $sp, $sp, -4
+		sw $t0, 0($sp) #save updated number of substrings
 		li $v0, 4 #Output String code loaded
-		syscall	#Output invalid hex message
-	ConvertDecimalToStringEnd:
+		syscall	#Output message
+		beq $t0, $zero, ConvertDecimalStackToStringEnd
+		la $a0, formattingComma #place comma between numbers
+		li $v0, 4 #Output String code loaded
+		syscall	#Output message
+	
+	ConvertDecimalStackToStringEnd:
 		jr $ra #end of function
