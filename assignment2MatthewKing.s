@@ -222,24 +222,42 @@ CheckData:
 			beq $t3, $zero, AddToInvalFlag #digit is between "a" and "f"
 	AddToInvalFlag:
 		or $t4, $t3, $t4 #updates overall flag based on current digit check
-		bne $t4, $zero, CheckDataEnd #ends loop early if invalid number is found
+		bne $t4, $zero, IsNaN #ends loop early if invalid number is found
 		addi $t0, $t0, 1 #shifts attention to next digit
 		addi $t2, $t2, 1 #increment digit counter
+		
 		j checkDataLoop
 		#bne $s1, $t2, checkDataLoop #while digitCount != STRSIZE
 	IsEmpty:
 		bne $t2, $zero, IsTooLarge #do not mark the flag if the string has at least 1 member
 		li $t4, 1 #mark as invalid if empty
-		j CheckDataEnd
+		j IsNaN
 	IsTooLarge:
 		slt $t3, $s1, $t2 #return 1 if max size is less than digit count
 		beq $t3, $zero, CheckDataEnd #do not mark the flag if string is at most 8 members long
 		li $t4, 2 #mark as invalid if too large
+		addi $sp, $sp, -4
+		sw $zero, 0($sp) #loads filler number which will not be read
+		addi $sp, $sp, -4
+		sw $t4, 0($sp) #loads 2 to represent "Too Large" in the stack
+		j CheckDataEnd
+	IsNaN:
+		addi $sp, $sp, -4
+		sw $zero, 0($sp) #loads filler number which will not be read
+		addi $sp, $sp, -4
+		sw $t4, 0($sp) #loads 1 to represent NaN in the stack
+		j CheckDataEnd
 	CheckDataEnd:
 		beq $t4, $zero, returnValid
 		li $v0, 0 #set "start" to null if invalid
 		j exitCheckData
 		returnValid:
+		
+			addi $sp, $sp, -4#TEMP
+			sw $zero, 0($sp) #TEMP
+			addi $sp, $sp, -4#TEMP
+			sw $zero, 0($sp) #TEMP
+			
 			add $v0, $t7, $zero #load starting postion into return register, $v0
 		exitCheckData:
 			jr $ra #end of function
