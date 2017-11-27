@@ -30,7 +30,12 @@ ELSE
 
 Thoughts:
 ---------
-There's no need to retype large amounts of the function. I just need to put what I already have in a loop
+There's no need to retype large amounts of the function. I just need to put what I already have in a loop.
+
+STEPS:
+> Make SUB1 be an exclusive function
+> Make code for stack (eg No./VALID?/No./VALID?/STACKAMT)
+
 
 SUB1: Converts HEX character to its DEC value (eg. B -> 11). Takes/returns values with registers
 
@@ -38,3 +43,37 @@ SUB2: Converts HEX String into DEC integer. Takes values via register, returns v
 
 SUB3: Outputs integers as unsigned. Takes values via stack. Similar to prev. output but must take from stack until end-value is reached
 
+
+STACK LOGIC:
+stack will need to be reversed before data is accessed
+
+STACK BEFORE:
+4|num
+ |valid-code 
+-
+3|num 
+ |valid-code
+-
+2|num
+ |valid-code
+-
+1|num
+ |valid-code
+-
+numberCount
+
+STACK AFTER:
+STACK BEFORE:
+1|num
+ |valid-code 
+-
+2|num 
+ |valid-code
+-
+3|num
+ |valid-code
+-
+4|num
+ |valid-code
+-
+numberCount
