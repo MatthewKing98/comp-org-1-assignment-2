@@ -97,7 +97,7 @@ inputError:
 # $t0 Current digit address - curAdd                #
 # $t1 Current digit - curDigit                      #
 # $t2 Digit counter - digitCount                    #
-# $t3 Current digit invalid flag - digiInvalFlag    #
+# $t3 Current invalid flag/substring count - digiInvalFlag/subCount    #
 # $t4 Invalid number flag - invalFlag               #
 # $t5 Current ascii limit - curLim                  #
 # $t6 Value to compare char against - strCode       #
@@ -236,16 +236,28 @@ CheckData:
 		slt $t3, $s1, $t2 #return 1 if max size is less than digit count
 		beq $t3, $zero, CheckDataEnd #do not mark the flag if string is at most 8 members long
 		li $t4, 2 #mark as invalid if too large
+		
+		lw $t3, 0($sp) #read number of detected substrings from top of stack
+		addi $sp, $sp, 4
+		addi $t3, $t3, 1 #increase the number of detected substrings by 1
 		addi $sp, $sp, -4
 		sw $zero, 0($sp) #loads filler number which will not be read
 		addi $sp, $sp, -4
 		sw $t4, 0($sp) #loads 2 to represent "Too Large" in the stack
+		addi $sp, $sp, -4
+		sw $t3, 0($sp) #save updated number of detected substrings
+		
 		j CheckDataEnd
 	IsNaN:
+		lw $t3, 0($sp) #read number of detected substrings from top of stack
+		addi $sp, $sp, 4
+		addi $t3, $t3, 1 #increase the number of detected substrings by 1
 		addi $sp, $sp, -4
 		sw $zero, 0($sp) #loads filler number which will not be read
 		addi $sp, $sp, -4
 		sw $t4, 0($sp) #loads 1 to represent NaN in the stack
+		addi $sp, $sp, -4
+		sw $t3, 0($sp) #save updated number of detected substrings 
 		j CheckDataEnd
 	CheckDataEnd:
 		beq $t4, $zero, returnValid
@@ -253,10 +265,15 @@ CheckData:
 		j exitCheckData
 		returnValid:
 		
-			addi $sp, $sp, -4#TEMP
-			sw $zero, 0($sp) #TEMP
-			addi $sp, $sp, -4#TEMP
-			sw $zero, 0($sp) #TEMP
+		lw $t3, 0($sp) #TEMP
+		addi $sp, $sp, 4 #TEMP
+		addi $t3, $t3, 1 #TEMP
+		addi $sp, $sp, -4 #TEMP
+		sw $zero, 0($sp) #TEMP
+		addi $sp, $sp, -4 #TEMP
+		sw $zero, 0($sp) #TEMP
+		addi $sp, $sp, -4 #TEMP
+		sw $t3, 0($sp) #TEMP
 			
 			add $v0, $t7, $zero #load starting postion into return register, $v0
 		exitCheckData:
