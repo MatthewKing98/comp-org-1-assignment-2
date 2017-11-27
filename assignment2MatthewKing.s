@@ -264,16 +264,6 @@ CheckData:
 		li $v0, 0 #set "start" to null if invalid
 		j exitCheckData
 		returnValid:
-		
-		lw $t3, 0($sp) #TEMP
-		addi $sp, $sp, 4 #TEMP
-		addi $t3, $t3, 1 #TEMP
-		addi $sp, $sp, -4 #TEMP
-		sw $zero, 0($sp) #TEMP
-		addi $sp, $sp, -4 #TEMP
-		sw $zero, 0($sp) #TEMP
-		addi $sp, $sp, -4 #TEMP
-		sw $t3, 0($sp) #TEMP
 			
 			add $v0, $t7, $zero #load starting postion into return register, $v0
 		exitCheckData:
@@ -353,6 +343,18 @@ CalcuateDecimal:
 				
 				j addDecimalDigitsLoop
 		addDecimalDigitsLoopEnd:
+		
+			lw $t3, 0($sp) #read number of detected substrings from top of stack
+			addi $sp, $sp, 4 
+			addi $t3, $t3, 1 #increase the number of detected substrings by 1
+			addi $sp, $sp, -4 
+			sw $t7, 0($sp) #loads cumulativeSum into Stack
+			addi $sp, $sp, -4 
+			sw $zero, 0($sp) #loads code to indicate that number is valid
+			addi $sp, $sp, -4 
+			sw $t3, 0($sp) #loads updated number of substrings
+		
+		
 			add $v0, $t7, $zero #load cumulative sum into return register, $v0
 			jr $ra #end of function
 		
