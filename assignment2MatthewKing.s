@@ -265,6 +265,7 @@ CheckData:
 			jr $ra #end of function
 	
 #####################################################
+#-------------------subprogram_2--------------------#
 # MODULE: CalcuateDecimal                           #
 # PURPOSE: Converts Hex code to a decimal number    #
 # $a0 Starting address of string - argument1        #
@@ -349,6 +350,7 @@ CalcuateDecimal:
 			jr $ra #end of function
 		
 ###########################################################
+#----------------------subprogram_1-----------------------#
 # MODULE: TranslateCharToInt                              #
 # PURPOSE: Converts individual character to decimal value #
 # $a0 character to convert - curChar                      #
@@ -442,6 +444,7 @@ FlipStack:
 
 		
 ###########################################################
+#----------------------subprogram_3-----------------------#
 # MODULE: ConvertDecimalStackToString                     #
 # PURPOSE: Stringifies decimal so it is read as unsigned  #
 # $t0 number of substrings left                           #
