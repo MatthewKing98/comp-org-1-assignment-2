@@ -392,6 +392,63 @@ TranslateCharToInt:
 	TranslateCharToIntEnd:
 		add $v0, $t1, $zero
 		jr $ra #end of function
+
+###########################################################
+# MODULE: FlipStack					                      #
+# PURPOSE: reverses stack  so that elements are printed in order  #
+# $t0 number of substrings/size of stack
+# $t1 iteration aim
+# $t2 substring counter
+# $t3 swap address 1
+# $t4 swap address 2
+# $t5 temporary content holder 1
+# $t6 temporary content holder 2
+# $t7 address displacement
+# $t8 temp const holder
+###########################################################
+
+FlipStack:
+	lw $t0, 0($sp) #read number of substrings
+	addi $sp, $sp, 4
+	add $t3, $sp, $zero
+	li $t2, 1 #counter = 1
+	li $t8, 2 #counter  < stackSize/2
+	SwapLoop:
+		divu $t0, $t8 #stackSize/2
+		mflo $t8
+		beq $t2, $t8, SwapLoopEnd
+		
+		sub $t7, $t0, $t2 #displacement = stackSize - counter
+		li $t8, 2     
+		mult $t7, $t8     #displacement = (stackSize - counter)*(elements per unit)
+		mflo $t7
+		li $t8, 4
+		mult $t7, $t8     #displacement = (stackSize - counter)*(elements per unit)*(wordsize)
+		mflo $t7
+		
+		add $t4, $t3, $t7 #swap address 2 = swap address 1 + displacement
+		lw $t5, 0($t3) #swap validity codes
+		lw $t6, 0($t4)
+		sw $t5, 0($t4)
+		sw $t6, 0($t3)
+		
+		addi $t3, $t3, 4 #shift attention to decimal values
+		addi $t4, $t4, 4
+		
+		lw $t5, 0($t3) #swap decimal values
+		lw $t6, 0($t4)
+		sw $t5, 0($t4)
+		sw $t6, 0($t3)
+		
+		addi $t3, $t3, 4 #shift attention to next unit
+		addi $t2, $t2, 1 #counter++
+		j SwapLoop
+	SwapLoopEnd:
+		addi $sp, $sp, -4
+		sw $t0, 0($sp) #save number of substrings
+		
+		jr $ra #end of function
+
 		
 ###########################################################
 # MODULE: ConvertDecimalStackToString                     #
