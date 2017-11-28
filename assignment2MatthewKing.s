@@ -20,6 +20,12 @@
 	inputErrorText: #error message for invalid user input
 		.asciiz "FILLER"
 		
+	debugCounterLimit: #error message for invalid user input
+		.asciiz " <--- Counter | Limit ---> "
+		
+	debugSwapping: #error message for invalid user input
+		.asciiz " <--- Switches with ---> "
+		
 	formattingComma: #statement preceeding the program output
 		.asciiz ","
 	
@@ -64,7 +70,7 @@ input:
 	
 validityCheck:
 	lb $t1, 0($s8)
-	beq $t1, $zero, stringConversion
+	beq $t1, $zero, stringConversionEntryPoint
 	#beq $t1, $s0, exit
 
 	add $a0, $s8, $zero
@@ -84,8 +90,10 @@ decimalConversion:
 	add $a1, $v0, $zero #load valid-number-code into argument1
 	j validityCheck
 	
-stringConversion:
 	
+stringConversionEntryPoint:
+	jal FlipStack
+stringConversion:
 	lw $t1, 0($sp) 
 	addi $sp, $sp, 4
 	beq $t1, $zero, exit
@@ -403,30 +411,34 @@ TranslateCharToInt:
 # $t4 swap address 2
 # $t5 temporary content holder 1
 # $t6 temporary content holder 2
-# $t7 address displacement
 # $t8 temp const holder
 ###########################################################
 
 FlipStack:
 	lw $t0, 0($sp) #read number of substrings
 	addi $sp, $sp, 4
-	add $t3, $sp, $zero
+	
+	add $t3, $sp, $zero #set swap address 1 initial site to start of content
 	li $t2, 1 #counter = 1
 	li $t8, 2 #counter  < stackSize/2
+	
+	subu $t4, $t0, $t2 #displacement = stackSize - counter
+	li $t8, 2     
+	mult $t4, $t8     #displacement = (stackSize - counter)*(elements per unit)
+	mflo $t4
+	li $t8, 4
+	mult $t4, $t8     #displacement = (stackSize - counter)*(elements per unit)*(wordsize)
+	mflo $t4
+	add $t4, $t3, $t4 #swap address 2 = swap address 1 + displacement
+		
 	SwapLoop:
+		li $t8, 2
 		divu $t0, $t8 #stackSize/2
 		mflo $t8
-		beq $t2, $t8, SwapLoopEnd
 		
-		sub $t7, $t0, $t2 #displacement = stackSize - counter
-		li $t8, 2     
-		mult $t7, $t8     #displacement = (stackSize - counter)*(elements per unit)
-		mflo $t7
-		li $t8, 4
-		mult $t7, $t8     #displacement = (stackSize - counter)*(elements per unit)*(wordsize)
-		mflo $t7
+		slt $t8, $t8, $t2 #return 1 if half-of-stack-size is less than counter
+		bne $t8, $zero SwapLoopEnd
 		
-		add $t4, $t3, $t7 #swap address 2 = swap address 1 + displacement
 		lw $t5, 0($t3) #swap validity codes
 		lw $t6, 0($t4)
 		sw $t5, 0($t4)
@@ -440,7 +452,36 @@ FlipStack:
 		sw $t5, 0($t4)
 		sw $t6, 0($t3)
 		
+		
+		
+		add $a0, $t2, $zero
+		li $v0, 1
+		syscall
+		
+		la $a0, outputStatement
+		li $v0, 4
+		syscall
+		
+		add $a0, $t5, $zero
+		li $v0, 1
+		syscall
+		
+		la $a0, debugSwapping
+		li $v0, 4
+		syscall
+		
+		add $a0, $t6, $zero
+		li $v0, 1
+		syscall
+		
+		la $a0, outputStatement
+		li $v0, 4
+		syscall
+		
+		
+		
 		addi $t3, $t3, 4 #shift attention to next unit
+		addi $t4, $t4, -12 #shift attention to previous unit
 		addi $t2, $t2, 1 #counter++
 		j SwapLoop
 	SwapLoopEnd:
