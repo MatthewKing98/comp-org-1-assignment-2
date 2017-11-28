@@ -44,7 +44,8 @@ SUB2: Converts HEX String into DEC integer. Takes values via register, returns v
 SUB3: Outputs integers as unsigned. Takes values via stack. Similar to prev. output but must take from stack until end-value is reached
 
 
-STACK LOGIC:
+Stack Logic:
+------------
 stack will need to be reversed before data is accessed
 
 STACK BEFORE:
@@ -78,8 +79,8 @@ STACK AFTER:
 numberCount
 
 
-C Code
-------
+Rough C Code
+------------
 FlipStack()
 {
 	stackSize = stack.size
