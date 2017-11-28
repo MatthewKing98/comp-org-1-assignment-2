@@ -11,26 +11,14 @@
 	userInput: #location were valid entry is stored
 		.space 1001 #1001 bytes, 1 byte per possible character, and an end-of-string marker; Space is maximum size
 	
-	notANumberMessage: #error message for invalid user input
+	notANumberMessage: #error message for numbers containing incorrect characters
 		.asciiz "NaN"
 	
-	tooLargeMessage: #error message for invalid user input
+	tooLargeMessage: #error message for numbers greater than 8 digits
 		.asciiz "too large"
 		
-	inputErrorText: #error message for invalid user input
-		.asciiz "FILLER"
-		
-	debugCounterLimit: #error message for invalid user input
-		.asciiz " <--- Counter | Limit ---> "
-		
-	debugSwapping: #error message for invalid user input
-		.asciiz " <--- Switches with ---> "
-		
-	formattingComma: #statement preceeding the program output
+	formattingComma: #comma placed between outputs
 		.asciiz ","
-	
-	outputStatement: #statement preceeding the program output
-		.asciiz "\n"
 	
 	outputDecimal: #string version of number (stored here because the 32 bit register represents 2s compliment vs unsigned)
 		.space 10 #Largest expected value is 4294967295 (FFFFFFFF); 10 digits long
@@ -44,10 +32,9 @@
 # $s3 CONST Output Base - OUTBASE                   #
 # $s4 CONST Space - SPACE                           #
 # $s5 CONST Comma - COMMA                           #
-# $s8 Starting point of current substring
+# $s6 address of current substring - subAddress		#
 # $t0 Cumulative sum - cumulativeSum                #
 # $t1 Address of decimal in string form - deciString#
-# $t2 Value at $t1
 #####################################################
 	.text #Assembly instructions component
 main: #Start of code
@@ -66,16 +53,15 @@ input:
 	la $a0, userInput #Set destination for read string
 	li $v0, 8 #Read String code loaded
 	syscall #Read string from user
-	la $s8, userInput
+	la $s6, userInput
 	
 validityCheck:
-	lb $t1, 0($s8)
+	lb $t1, 0($s6)
 	beq $t1, $zero, stringConversionEntryPoint
-	#beq $t1, $s0, exit
 
-	add $a0, $s8, $zero
+	add $a0, $s6, $zero
 	jal CheckData #Verifies if userInput is a valid HEX value
-	add $s8, $v1, $zero #T1 DOES NOT STAY THE SAME KING
+	add $s6, $v1, $zero 
 	
 	bne $v0, $zero, decimalConversion #convert to decimal if input is valid
 	add $a1, $v0, $zero #load invalid-number-code into argument1
@@ -107,13 +93,6 @@ exit:
 	li $v0, 10 #Exit code loaded
 	syscall	#Exit program
 	
-inputError:
-	la $a0, inputErrorText #Set output source to input error message
-	li $v0, 4 #Output String code loaded
-	syscall	#Inform the user if invalid code entry
-	j input #loop back to ask user for valid input
-	
-	
 	
 #####################################################
 # MODULE: CheckData                                 #
@@ -122,7 +101,8 @@ inputError:
 # $t0 Current digit address - curAdd                #
 # $t1 Current digit - curDigit                      #
 # $t2 Digit counter - digitCount                    #
-# $t3 Current invalid flag/substring count - digiInvalFlag/subCount    #
+# $t3 Current invalid flag/digiInvalFlag  			#
+#  "  Substring count - subCount					#
 # $t4 Invalid number flag - invalFlag               #
 # $t5 Current ascii limit - curLim                  #
 # $t6 Value to compare char against - strCode       #
@@ -180,21 +160,21 @@ CheckData:
 			sb $s0, 0($t0) #represent end of string with a newline
 			j nextNo
 		wasSpaceAddSpace:
-			j nextNo
+			j nextNo #no change
 		wasNumAndSpaceAddSpace:
-			j nextNo
+			j nextNo #no change
 			
 		#string also contains a number
 		wasBlankAddNum:
 			li $t8, 1 #blank -> num
 			add $t7, $t0, $zero #record starting address of actual
-			j nextNo
+			j nextNo #no change
 		wasNumAddNum:
-			j nextNo
+			j nextNo #no change
 		wasSpaceAddNum:
 			li $t8, 1 #blank -> num
 			add $t7, $t0, $zero #record starting address of actual number
-			j nextNo
+			j nextNo 
 		wasNumAndSpaceAddNum:
 			li $t4, 1 #invalid; a space cannot exist between two numbers
 			#j CheckDataEnd #no need to check any further once proven invalid
@@ -297,12 +277,10 @@ CheckData:
 # $t6 Digit decimal value - digiVal                 #
 # $t7 Cumulative sum - cumulativeSum                #
 # $t8 Temp const holder - tempConstHolder           #
-# $s6 temp return holder
 # $v0 $t7, cumulative sum - returnVar1              #
 #####################################################
 
 CalcuateDecimal:
-
 	add $t0, $a0, $zero #sets digit address to leftmost slot
 	li $t2, 0 #initializes digit counter to zero
 	totalDigitsLoop:
@@ -328,14 +306,13 @@ CalcuateDecimal:
 
 				charToIntFunction: #identifies what the decimal value is of the given character
 				
-				add $s6, $ra, $zero #hold the current function's return address
-				addi $sp, $sp, -4
-				sw $ra, 0($sp)
-				add $a0, $t1, $zero
-				jal TranslateCharToInt
+				addi $sp, $sp, -4 
+				sw $ra, 0($sp) #save function return address to stack
+				add $a0, $t1, $zero #load character to be converted
+				jal TranslateCharToInt #convert character to decimal equivalent
+				add $t1, $v0, $zero #load result of function into $t1
 				lw $ra, 0($sp) #return function return address to original
 				addi $sp, $sp, 4
-				add $t1, $v0, $zero
 				j applyMultiplier
 				
 			prepareMultiplier:
@@ -368,9 +345,7 @@ CalcuateDecimal:
 			sw $zero, 0($sp) #loads code to indicate that number is valid
 			addi $sp, $sp, -4 
 			sw $t3, 0($sp) #loads updated number of substrings
-		
-		
-			add $v0, $t7, $zero #load cumulative sum into return register, $v0
+			
 			jr $ra #end of function
 		
 ###########################################################
@@ -379,6 +354,7 @@ CalcuateDecimal:
 # $a0 character to convert - curChar                      #
 # $t1 $a0 character to convert - curChar                  #
 # $t8 Current character limit - curLim                    #
+# $v0 $t1, converted character - returnVar1               #
 ###########################################################			
 TranslateCharToInt:
 	add $t1, $a0, $zero
@@ -398,20 +374,20 @@ TranslateCharToInt:
 		slt $t8, $t8, $t1 #return 1 if "9" is less than digit
 		addi $t1, $t1, -87 #lower value so that "a" = 10	
 	TranslateCharToIntEnd:
-		add $v0, $t1, $zero
+		add $v0, $t1, $zero #load decimal value into return register
 		jr $ra #end of function
 
+		
 ###########################################################
 # MODULE: FlipStack					                      #
-# PURPOSE: reverses stack  so that elements are printed in order  #
-# $t0 number of substrings/size of stack
-# $t1 iteration aim
-# $t2 substring counter
-# $t3 swap address 1
-# $t4 swap address 2
-# $t5 temporary content holder 1
-# $t6 temporary content holder 2
-# $t8 temp const holder
+# PURPOSE: reverses stack order of stack elements		  #
+# $t0 number of substrings/size of stack - subCount		  #
+# $t1 temporary constant holder - tempConstHolder		  #
+# $t2 substring counter 								  #
+# $t3 swap address 1 									  #
+# $t4 swap address 2									  #
+# $t5 temporary content holder 1						  #
+# $t6 temporary content holder 2						  #
 ###########################################################
 
 FlipStack:
@@ -420,72 +396,46 @@ FlipStack:
 	
 	add $t3, $sp, $zero #set swap address 1 initial site to start of content
 	li $t2, 1 #counter = 1
-	li $t8, 2 #counter  < stackSize/2
+	li $t1, 2 #counter  < stackSize/2
 	
 	subu $t4, $t0, $t2 #displacement = stackSize - counter
-	li $t8, 2     
-	mult $t4, $t8     #displacement = (stackSize - counter)*(elements per unit)
-	mflo $t4
-	li $t8, 4
-	mult $t4, $t8     #displacement = (stackSize - counter)*(elements per unit)*(wordsize)
-	mflo $t4
+	li $t1, 2 #no. of elements per unit
+	mult $t4, $t1 #displacement = (stackSize - counter)*(elements per unit)
+	mflo $t4 #load result
+	li $t1, 4 #wordsize
+	mult $t4, $t1 #displacement = (stackSize - counter)*(elements per unit)*(wordsize)
+	mflo $t4 #load result
 	add $t4, $t3, $t4 #swap address 2 = swap address 1 + displacement
 		
 	SwapLoop:
-		li $t8, 2
-		divu $t0, $t8 #stackSize/2
-		mflo $t8
+		li $t1, 2 
+		divu $t0, $t1 #stackSize/2
+		mflo $t1 #load result
 		
-		slt $t8, $t8, $t2 #return 1 if half-of-stack-size is less than counter
-		bne $t8, $zero SwapLoopEnd
+		slt $t1, $t1, $t2 #return 1 if half-of-stack-size is less than counter
+		bne $t1, $zero SwapLoopEnd #end loop if half-of-stack-size >= counter
 		
-		lw $t5, 0($t3) #swap validity codes
-		lw $t6, 0($t4)
-		sw $t5, 0($t4)
-		sw $t6, 0($t3)
+		#swap validity codes
+		lw $t5, 0($t3) #load code a address 1
+		lw $t6, 0($t4) #load code at address 2
+		sw $t5, 0($t4) #overwrite address 2 content with address 1 content
+		sw $t6, 0($t3) #overwrite address 1 content with address 2 content
 		
-		addi $t3, $t3, 4 #shift attention to decimal values
-		addi $t4, $t4, 4
+		addi $t3, $t3, 4 #shift address 1 to the decimal component
+		addi $t4, $t4, 4 #shift address 2 to the decimal component
 		
-		lw $t5, 0($t3) #swap decimal values
-		lw $t6, 0($t4)
-		sw $t5, 0($t4)
-		sw $t6, 0($t3)
-		
-		
-		
-		add $a0, $t2, $zero
-		li $v0, 1
-		syscall
-		
-		la $a0, outputStatement
-		li $v0, 4
-		syscall
-		
-		add $a0, $t5, $zero
-		li $v0, 1
-		syscall
-		
-		la $a0, debugSwapping
-		li $v0, 4
-		syscall
-		
-		add $a0, $t6, $zero
-		li $v0, 1
-		syscall
-		
-		la $a0, outputStatement
-		li $v0, 4
-		syscall
-		
-		
+		#swap decimal values
+		lw $t5, 0($t3) #load code a address 1
+		lw $t6, 0($t4) #load code at address 2
+		sw $t5, 0($t4) #overwrite address 2 content with address 1 content
+		sw $t6, 0($t3) #overwrite address 1 content with address 2 content
 		
 		addi $t3, $t3, 4 #shift attention to next unit
 		addi $t4, $t4, -12 #shift attention to previous unit
 		addi $t2, $t2, 1 #counter++
-		j SwapLoop
+		j SwapLoop #repeat loop while counter < stackSize/2
 	SwapLoopEnd:
-		addi $sp, $sp, -4
+		addi $sp, $sp, -4 
 		sw $t0, 0($sp) #save number of substrings
 		
 		jr $ra #end of function
@@ -499,7 +449,7 @@ FlipStack:
 # $t2 Decimal to convert - deciVal                        #
 # $t3 Destination string of converted decimal - deciString#
 # $t4 deciVal mod 10 - modResult                          #
-# $t5 teporary comparison holder						  #
+# $t5 temporary comparison holder						  #
 ###########################################################
 
 ConvertDecimalStackToString:
@@ -524,23 +474,23 @@ ConvertDecimalStackToString:
 			bne $t2, $zero, addToString #repeat until there are no digits remaining
 		addi $t3, $t3, 1 #readjust pointer to start of the string
 		add $a0, $t3, $zero #Set output source to cumulativeSum
-		j PrintNumber
+		j PrintNumber #jump to output statement
 	invalidDecimal:
 		li $t5, 1
-		bne $t5, $t1, isTooLarge
-		isNaN:
+		bne $t5, $t1, isTooLarge 
+		isNaN: #code 1 translates to NaN
 			la $a0, notANumberMessage #Set output source to NaN message
-			j PrintNumber
-		isTooLarge:
+			j PrintNumber #jump to output statement
+		isTooLarge: #code 2 translates to "too large"
 			la $a0, tooLargeMessage #Set output source to "too large" message
-			j PrintNumber
+			j PrintNumber #jump to output statement
 	PrintNumber:
-		addi $t0, $t0, -1
-		addi $sp, $sp, -4
+		addi $t0, $t0, -1 #decrease substring count by 1
+		addi $sp, $sp, -4 
 		sw $t0, 0($sp) #save updated number of substrings
 		li $v0, 4 #Output String code loaded
 		syscall	#Output message
-		beq $t0, $zero, ConvertDecimalStackToStringEnd
+		beq $t0, $zero, ConvertDecimalStackToStringEnd #no comma if last number
 		la $a0, formattingComma #place comma between numbers
 		li $v0, 4 #Output String code loaded
 		syscall	#Output message
