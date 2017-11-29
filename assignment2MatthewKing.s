@@ -69,7 +69,7 @@ validityCheck:
 
 decimalConversion:
 	add $a0, $v0, $zero #pass the string's starting position as an argument
-	jal CalcuateDecimal #convert the code to a decimal value
+	jal subprogram_2 #convert the code to a decimal value
 	add $t0, $v0, $zero #load the returned cumulative sum into $t0
 	
 	add $a0, $t0, $zero #load the cumulative sum as an argument
@@ -85,7 +85,7 @@ stringConversion:
 	beq $t1, $zero, exit
 	addi $sp, $sp, -4
 	sw $t1, 0($sp)
-	jal ConvertDecimalStackToString
+	jal subprogram_3
 	j stringConversion
 
 	
@@ -281,7 +281,7 @@ CheckData:
 # $v0 $t7, cumulative sum - returnVar1              #
 #####################################################
 
-CalcuateDecimal:
+subprogram_2:
 	add $t0, $a0, $zero #sets digit address to leftmost slot
 	li $t2, 0 #initializes digit counter to zero
 	totalDigitsLoop:
@@ -310,7 +310,7 @@ CalcuateDecimal:
 				addi $sp, $sp, -4 
 				sw $ra, 0($sp) #save function return address to stack
 				add $a0, $t1, $zero #load character to be converted
-				jal TranslateCharToInt #convert character to decimal equivalent
+				jal subprogram_1 #convert character to decimal equivalent
 				add $t1, $v0, $zero #load result of function into $t1
 				lw $ra, 0($sp) #return function return address to original
 				addi $sp, $sp, 4
@@ -358,24 +358,24 @@ CalcuateDecimal:
 # $t8 Current character limit - curLim                    #
 # $v0 $t1, converted character - returnVar1               #
 ###########################################################			
-TranslateCharToInt:
+subprogram_1:
 	add $t1, $a0, $zero
 	li $t8, 58 #set curLim to "9" + 1
 	slt $t8, $t8, $t1  #return 1 if "9" is less than digit
 	bne $t8, $zero, notDigit #character is a letter in "A-F"/"a-f"
 	addi $t1, $t1, -48 #lower value so that "0" = 0
-	j TranslateCharToIntEnd 
+	j subprogram_1End 
 	notDigit:
 		li $t8, 71 #set curLim to "F" + 1
 		slt $t8, $t8, $t1 #return 1 if "9" is less than digit
 		bne $t8, $zero, notUpper #character is a letter in "a-f"
 		addi $t1, $t1, -55 #lower value so that "A" = 10
-	j TranslateCharToIntEnd
+	j subprogram_1End
 	notUpper:
 		li $t8, 103 #set curLim to "f" + 1
 		slt $t8, $t8, $t1 #return 1 if "9" is less than digit
 		addi $t1, $t1, -87 #lower value so that "a" = 10	
-	TranslateCharToIntEnd:
+	subprogram_1End:
 		add $v0, $t1, $zero #load decimal value into return register
 		jr $ra #end of function
 
@@ -455,7 +455,7 @@ FlipStack:
 # $t5 temporary comparison holder						  #
 ###########################################################
 
-ConvertDecimalStackToString:
+subprogram_3:
 	lw $t0, 0($sp) #read number of substrings
 	addi $sp, $sp, 4
 	lw $t1, 0($sp) #read status of substring from stack
@@ -493,10 +493,10 @@ ConvertDecimalStackToString:
 		sw $t0, 0($sp) #save updated number of substrings
 		li $v0, 4 #Output String code loaded
 		syscall	#Output message
-		beq $t0, $zero, ConvertDecimalStackToStringEnd #no comma if last number
+		beq $t0, $zero, subprogram_3End #no comma if last number
 		la $a0, formattingComma #place comma between numbers
 		li $v0, 4 #Output String code loaded
 		syscall	#Output message
 	
-	ConvertDecimalStackToStringEnd:
+	subprogram_3End:
 		jr $ra #end of function
